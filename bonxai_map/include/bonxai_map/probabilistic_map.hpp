@@ -4,9 +4,17 @@
 #include <eigen3/Eigen/Geometry>
 #include <unordered_set>
 
+#include <diagnostic_msgs/DiagnosticStatus.h>
+#include <dynamic_reconfigure/server.h>
+#include <ros/ros.h>
+#include <sensor_msgs/PointCloud2.h>
+#include <tf2_ros/transform_listener.h>
+#include <tf2_sensor_msgs/tf2_sensor_msgs.h>
+#include <ros/init.h>
+#include <nodelet/nodelet.h>
+
 namespace Bonxai
 {
-
 template <class Functor>
 void RayIterator(const CoordT& key_origin,
                  const CoordT& key_end,
@@ -17,11 +25,10 @@ inline void ComputeRay(const CoordT& key_origin,
                        std::vector<CoordT>& ray)
 {
   ray.clear();
-  RayIterator(key_origin, key_end, [&ray](const CoordT& coord)
-              {
-                ray.push_back(coord);
-                return true;
-              } );
+  RayIterator(key_origin, key_end, [&ray](const CoordT& coord) {
+    ray.push_back(coord);
+    return true;
+  });
 }
 
 /**
@@ -153,14 +160,20 @@ private:
 //--------------------------------------------------
 
 template <typename PointT, typename Alloc>
-inline void ProbabilisticMap::insertPointCloud(const std::vector<PointT, Alloc>& points,
-                                               const PointT& origin,
-                                               double max_range)
+inline void
+ProbabilisticMap::insertPointCloud(const std::vector<PointT, Alloc>& points,
+                                   const PointT& origin,
+                                   double max_range)
 {
+  /* ROS_WARN("insertPointCloud is starting"); */
   const auto from = ConvertPoint<Vector3D>(origin);
   const double max_range_sqr = max_range * max_range;
   for (const auto& point : points)
   {
+    if (isnan(point.x) && isnan(point.y) && isnan(point.z))
+    {
+      continue;
+    }
     const auto to = ConvertPoint<Vector3D>(point);
     Vector3D vect(to - from);
     const double squared_norm = vect.squaredNorm();
@@ -168,26 +181,31 @@ inline void ProbabilisticMap::insertPointCloud(const std::vector<PointT, Alloc>&
     if (squared_norm >= max_range_sqr)
     {
       // The new point will have distance == max_range from origin
-      const Vector3D new_point = from + ((vect / std::sqrt(squared_norm)) * max_range);
+      const Vector3D new_point =
+          from + ((vect / std::sqrt(squared_norm)) * max_range);
       addMissPoint(new_point);
     }
-    else {
+    else
+    {
       addHitPoint(to);
+      /* const auto coord = _grid.posToCoord(point); */
+      /* std::cout << "The probability of an inserted point is: " << isOccupied(coord) << std::endl; */
+      /* ROS_WARN("Inserting a hit to the map"); */
     }
   }
   updateFreeCells(from);
 }
 
-template <class Functor> inline
-void RayIterator(const CoordT& key_origin,
-                 const CoordT& key_end,
-                 const Functor &func)
+template <class Functor>
+inline void RayIterator(const CoordT& key_origin,
+                        const CoordT& key_end,
+                        const Functor& func)
 {
   if (key_origin == key_end)
   {
     return;
   }
-  if(!func(key_origin))
+  if (!func(key_origin))
   {
     return;
   }
@@ -226,7 +244,7 @@ void RayIterator(const CoordT& key_origin,
       coord.z += step.z;
       error.z -= max;
     }
-    if(!func(coord))
+    if (!func(coord))
     {
       return;
     }

@@ -21,7 +21,6 @@
 
 namespace Bonxai
 {
-
 // Magically converts any representation of a point in 3D
 // (type with x, y and z) to another one. Works with:
 //
@@ -83,6 +82,8 @@ struct CoordT
 
   CoordT& operator+=(const CoordT& other);
   CoordT& operator-=(const CoordT& other);
+
+  [[nodiscard]] bool operator<(const CoordT& other) const;
 };
 
 [[nodiscard]] inline CoordT PosToCoord(const Point3D& point, double inv_resolution)
@@ -313,6 +314,23 @@ public:
   template <class VisitorFunction>
   void forEachCell(VisitorFunction func);
 
+  /* void deleteLeafGrid(const CoordT& coord) */
+  /* { */
+  /*   // Use the Accessor to get the LeafGrid */
+  /*   Accessor accessor(*this); */
+  /*   LeafGrid* leafGrid = accessor.getLeafGrid(coord); */
+
+  /*   // Check if the LeafGrid exists */
+  /*   if (leafGrid) */
+  /*   { */
+  /*     // Remove the LeafGrid from your data structure */
+  /*     // For example, if it's stored in the RootMap, you can use the following: */
+  /*     /1* root_map[coord].erase(coord); *1/ */
+
+  /*     // You can also delete the LeafGrid if you're not using it elsewhere */
+  /*     delete leafGrid; */
+  /*   } */
+  /* } */
   /** Class to be used to set and get values of a cell of the Grid.
    *  It uses caching to speed up computation.
    *
@@ -522,6 +540,11 @@ inline CoordT& CoordT::operator-=(const CoordT& other)
   y -= other.y;
   z -= other.z;
   return *this;
+}
+
+inline bool CoordT::operator<(const CoordT& other) const {
+    return x < other.x || (x == other.x && y < other.y) ||
+           (x == other.x && y == other.y && z < other.z);
 }
 
 template <typename DataT>

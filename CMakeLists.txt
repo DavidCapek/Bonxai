@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 3.10)
 project(Bonxai)
+set(CMAKE_INSTALL_PREFIX /usr//local/lib)
 
 if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
 
@@ -63,6 +64,8 @@ if ( ament_cmake_FOUND )
     ament_auto_add_library(bonxai_server SHARED
       bonxai_ros/src/bonxai_server.cpp
     )
+    
+    install(TARGETS Bonxai DESTINATION /usr/local/lib)
 
     target_link_libraries(bonxai_server
       bonxai_map
@@ -81,7 +84,8 @@ if ( ament_cmake_FOUND )
       bonxai_ros/rviz 
       bonxai_ros/params 
     )
-
+    
+    
 else()
 
   message(STATUS "Building with cmake")

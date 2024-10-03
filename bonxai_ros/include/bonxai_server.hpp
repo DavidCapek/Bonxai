@@ -11,7 +11,7 @@
 #include <pcl/filters/passthrough.h>
 #include <pcl/common/transforms.h>
 
-#include "rclcpp/rclcpp.hpp"
+#include <ros/ros.h>
 #include "std_msgs/msg/color_rgba.hpp"
 
 #include "sensor_msgs/msg/point_cloud2.hpp"
@@ -37,7 +37,7 @@ namespace bonxai_server
 
 using sensor_msgs::msg::PointCloud2;
 
-class BonxaiServer : public rclcpp::Node
+class BonxaiServer : public ros::Node
 {
 public:
   using PCLPoint = pcl::PointXYZ;
@@ -45,7 +45,7 @@ public:
   using BonxaiT = Bonxai::ProbabilisticMap;
   using ResetSrv = std_srvs::srv::Empty;
 
-  explicit BonxaiServer(const rclcpp::NodeOptions& node_options);
+  explicit BonxaiServer(const ros::NodeOptions& options = ros::NodeOptions());
 
   bool resetSrv(const std::shared_ptr<ResetSrv::Request> req,
                 const std::shared_ptr<ResetSrv::Response> resp);

@@ -1,6 +1,6 @@
 #include "bonxai_server.hpp"
 
-namespace
+namespace/*//{*/
 {
 template <typename T>
 bool update_param(const std::vector<rclcpp::Parameter>& p,
@@ -18,11 +18,11 @@ bool update_param(const std::vector<rclcpp::Parameter>& p,
   }
   return false;
 }
-}  // namespace
+}  // namespace//}
 
 namespace bonxai_server
 {
-BonxaiServer::BonxaiServer(const rclcpp::NodeOptions& node_options)
+BonxaiServer::BonxaiServer(const rclcpp::NodeOptions& node_options)/*//{*/
   : Node("bonxai_server_node", node_options)
 {
   using std::placeholders::_1;
@@ -159,9 +159,9 @@ BonxaiServer::BonxaiServer(const rclcpp::NodeOptions& node_options)
   // set parameter callback
   set_param_res_ = this->add_on_set_parameters_callback(
       std::bind(&BonxaiServer::onParameter, this, _1));
-}
+}/*//}*/
 
-void BonxaiServer::insertCloudCallback(const PointCloud2::ConstSharedPtr cloud)
+void BonxaiServer::insertCloudCallback(const PointCloud2::ConstSharedPtr cloud)/*//{*/
 {
   const auto start_time = rclcpp::Clock{}.now();
 
@@ -204,9 +204,9 @@ void BonxaiServer::insertCloudCallback(const PointCloud2::ConstSharedPtr cloud)
       get_logger(), "Pointcloud insertion in Bonxai done, %f sec)", total_elapsed);
 
   publishAll(cloud->header.stamp);
-}
+}/*//}*/
 
-rcl_interfaces::msg::SetParametersResult
+rcl_interfaces::msg::SetParametersResult/*//{*/
 BonxaiServer::onParameter(const std::vector<rclcpp::Parameter>& parameters)
 {
   update_param(parameters, "occupancy_min_z", occupancy_min_z_);
@@ -234,9 +234,9 @@ BonxaiServer::onParameter(const std::vector<rclcpp::Parameter>& parameters)
   result.successful = true;
   result.reason = "success";
   return result;
-}
+}/*//}*/
 
-void BonxaiServer::publishAll(const rclcpp::Time& rostime)
+void BonxaiServer::publishAll(const rclcpp::Time& rostime)/*//{*/
 {
   const auto start_time = rclcpp::Clock{}.now();
   thread_local std::vector<Eigen::Vector3d> bonxai_result;
@@ -275,9 +275,9 @@ void BonxaiServer::publishAll(const rclcpp::Time& rostime)
     point_cloud_pub_->publish(cloud);
     RCLCPP_WARN(get_logger(), "Published occupancy grid with %ld voxels", pcl_cloud.points.size());
   }
-}
+}/*//}*/
 
-bool BonxaiServer::resetSrv(const std::shared_ptr<ResetSrv::Request>,
+bool BonxaiServer::resetSrv(const std::shared_ptr<ResetSrv::Request>,/*//{*/
                             const std::shared_ptr<ResetSrv::Response>)
 {
   const auto rostime = now();
@@ -287,7 +287,7 @@ bool BonxaiServer::resetSrv(const std::shared_ptr<ResetSrv::Request>,
   publishAll(rostime);
 
   return true;
-}
+}/*//}*/
 
 }  // namespace bonxai_server
 

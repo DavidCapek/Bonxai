@@ -41,11 +41,14 @@ void ProbabilisticMap::addHitPoint(const Vector3D &point)
 
   if (cell->update_id != _update_count)
   {
+    std::cout << "adding hit point" << std::endl;
     cell->probability_log = std::min(cell->probability_log + _options.prob_hit_log,
                                      _options.clamp_max_log);
-
+    std::cout << "cell probability log: " << cell->probability_log << std::endl;
     cell->update_id = _update_count;
+    std::cout << "cell update id: " << cell->update_id << std::endl;
     _hit_coords.push_back(coord);
+    std::cout << "hit coords size: " << _hit_coords.size() << std::endl;
   }
 }
 

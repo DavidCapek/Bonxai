@@ -20,8 +20,12 @@ namespace Bonxai
 /**
  * Serialize a grid to ostream. Easy :)
  */
-template <typename DataT>
-inline void Serialize(std::ostream& out, const VoxelGrid<DataT>& grid);
+template <typename datat>
+inline void serialize(std::ostream& out, const VoxelGrid<datat>& grid);
+
+template <typename datat>
+inline void serialize_neural(std::ostream& out, const VoxelGrid<datat>& grid);
+
 
 struct HeaderInfo
 {
@@ -76,6 +80,42 @@ inline void Write(std::ostream& out, const T& val)
 {
   static_assert(std::is_trivially_copyable_v<T>, "Must be trivially copyable");
   out.write(reinterpret_cast<const char*>(&val), sizeof(T));
+}
+
+template <typename DataT>
+inline void SerializeNeural(std::ostream& out, const VoxelGrid<DataT>& grid)
+{
+  static_assert(std::is_trivially_copyable_v<DataT>,
+                "DataT must ne trivially copyable");
+
+  char header[256];
+  std::string type_name = details::demangle(typeid(DataT).name());
+
+  sprintf(header,
+          "Bonxai::VoxelGrid<%s,%d,%d>(%lf)\n",
+          type_name.c_str(),
+          grid.INNER_BITS,
+          grid.LEAF_BITS,
+          grid.resolution);
+
+  out.write(header, std::strlen(header));
+
+  //------------
+  Write(out, uint32_t(grid.root_map.size()));
+
+  for (const auto& it : grid.root_map)
+  {
+    const CoordT& root_coord = it.first;
+    Write(out, root_coord.x);
+    Write(out, root_coord.y);
+    Write(out, root_coord.z);
+
+    const auto& inner_grid = it.second;
+    for (size_t w = 0; w < inner_grid.mask().wordCount(); w++)
+    {
+      Write(out, inner_grid.mask().getWord(w));
+    }
+  }
 }
 
 template <typename DataT>
@@ -227,5 +267,64 @@ inline VoxelGrid<DataT> Deserialize(std::istream& input, HeaderInfo info)
   return grid;
 }
 
+template <typename DataT>
+inline VoxelGrid<DataT> DeserializeNeural(std::istream& input, HeaderInfo info)
+{
+  std::string type_name = details::demangle(typeid(DataT).name());
+  if (type_name != info.type_name)
+  {
+    throw std::runtime_error("DataT does not match");
+  }
+
+  //------------
+
+  VoxelGrid<DataT> grid(info.resolution, info.inner_bits, info.leaf_bits);
+
+  uint32_t root_count = Read<uint32_t>(input);
+
+  for (size_t root_index = 0; root_index < root_count; root_index++)
+  {
+    CoordT root_coord;
+    root_coord.x = Read<int32_t>(input);
+    root_coord.y = Read<int32_t>(input);
+    root_coord.z = Read<int32_t>(input);
+
+    auto inner_it = grid.root_map.find(root_coord);
+    if (inner_it == grid.root_map.end())
+    {
+      inner_it =
+          grid.root_map
+              .insert({ root_coord,
+                        typename VoxelGrid<DataT>::InnerGrid(info.inner_bits) })
+              .first;
+    }
+    auto& inner_grid = inner_it->second;
+
+    for (size_t w = 0; w < inner_grid.mask().wordCount(); w++)
+    {
+      uint64_t word = Read<uint64_t>(input);
+      inner_grid.mask().setWord(w, word);
+    }
+    for (auto inner = inner_grid.mask().beginOn(); inner; ++inner)
+    {
+      const uint32_t inner_index = *inner;
+      /* using LeafGridT = typename VoxelGrid<DataT>::LeafGrid; */
+      /* inner_grid.data[inner_index] = std::make_shared<LeafGridT>(info.leaf_bits); */
+      /* auto& leaf_grid = inner_grid.data[inner_index]; */
+
+      /* for (size_t w = 0; w < leaf_grid->mask.wordCount(); w++) */
+      /* { */
+      /*   uint64_t word = Read<uint64_t>(input); */
+      /*   leaf_grid->mask.setWord(w, word); */
+      /* } */
+      /* for (auto leaf = leaf_grid->mask.beginOn(); leaf; ++leaf) */
+      /* { */
+      /*   const uint32_t leaf_index = *leaf; */
+      /*   leaf_grid->data[leaf_index] = Read<DataT>(input); */
+      /* } */
+    }
+  }
+  return grid;
+}
 }  // namespace Bonxai
 
