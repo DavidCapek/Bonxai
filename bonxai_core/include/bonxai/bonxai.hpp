@@ -314,6 +314,8 @@ public:
   template <class VisitorFunction>
   void forEachCell(VisitorFunction func);
 
+  void clear() { root_map.clear(); }
+
   /* void deleteLeafGrid(const CoordT& coord) */
   /* { */
   /*   // Use the Accessor to get the LeafGrid */
@@ -542,9 +544,10 @@ inline CoordT& CoordT::operator-=(const CoordT& other)
   return *this;
 }
 
-inline bool CoordT::operator<(const CoordT& other) const {
-    return x < other.x || (x == other.x && y < other.y) ||
-           (x == other.x && y == other.y && z < other.z);
+inline bool CoordT::operator<(const CoordT& other) const
+{
+  return x < other.x || (x == other.x && y < other.y) ||
+         (x == other.x && y == other.y && z < other.z);
 }
 
 template <typename DataT>
