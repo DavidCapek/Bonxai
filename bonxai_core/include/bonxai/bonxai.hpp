@@ -257,6 +257,7 @@ public:
   [[nodiscard]] DataT& cell(size_t index) { return data_[index]; };
 
   [[nodiscard]] const DataT& cell(size_t index) const { return data_[index]; };
+
 };
 
 //----------------------------------------------------------
