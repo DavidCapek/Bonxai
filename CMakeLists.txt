@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.50)
 project(Bonxai)
 set(CMAKE_INSTALL_PREFIX /usr//local/lib)
 
