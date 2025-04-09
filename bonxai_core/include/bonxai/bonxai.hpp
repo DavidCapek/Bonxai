@@ -226,8 +226,8 @@ private:
   // total number of elements in the cube
   uint32_t size_;
 
-  DataT* data_ = nullptr;
   Bonxai::Mask mask_;
+  DataT* data_ = nullptr;
 
 public:
   Grid(size_t log2dim)
@@ -238,8 +238,11 @@ public:
     data_ = new DataT[size_];
   }
 
-  Grid(const Grid& other) = delete;
-  Grid& operator=(const Grid& other) = delete;
+  /* Grid(const Grid& other) = delete; */
+  /* Grid& operator=(const Grid& other) = delete; */
+
+  Grid(const Grid& other);
+  Grid& operator=(const Grid& other);
 
   Grid(Grid&& other);
   Grid& operator=(Grid&& other);
@@ -316,6 +319,15 @@ public:
   void forEachCell(VisitorFunction func);
 
   void clear() { root_map.clear(); }
+
+  VoxelGrid(const VoxelGrid& other);            
+  VoxelGrid& operator=(const VoxelGrid& other); 
+
+  VoxelGrid(VoxelGrid&& other) noexcept;            
+  VoxelGrid& operator=(VoxelGrid&& other) noexcept; 
+
+
+
 
   /* void deleteLeafGrid(const CoordT& coord) */
   /* { */
@@ -878,6 +890,104 @@ inline void VoxelGrid<DataT>::forEachCell(VisitorFunction func)
       }
     }
   }
+}
+
+
+
+template <typename DataT>
+VoxelGrid<DataT>::VoxelGrid(const VoxelGrid& other)
+    : INNER_BITS(other.INNER_BITS),         
+      LEAF_BITS(other.LEAF_BITS),
+      Log2N(other.Log2N),
+      resolution(other.resolution),
+      inv_resolution(other.inv_resolution),
+      INNER_MASK(other.INNER_MASK),
+      LEAF_MASK(other.LEAF_MASK),
+      root_map() 
+{
+    for (const auto& [key, source_inner_grid] : other.root_map) {
+        InnerGrid copied_inner_grid(source_inner_grid);
+
+        for (auto inner_it = copied_inner_grid.mask().beginOn(); inner_it; ++inner_it) {
+            const uint32_t inner_index = *inner_it;
+            auto& leaf_ptr_ref = copied_inner_grid.cell(inner_index); 
+
+            if (leaf_ptr_ref) {                 
+              leaf_ptr_ref = std::make_shared<LeafGrid>(*leaf_ptr_ref);
+            }
+             copied_inner_grid.mask().setOn(inner_index);
+        }
+        root_map.insert({ key, std::move(copied_inner_grid) });
+    }
+}
+
+
+template <typename DataT>
+VoxelGrid<DataT>& VoxelGrid<DataT>::operator=(const VoxelGrid& other) {
+    if (this == &other) { 
+        return *this;
+    }
+
+    if (INNER_BITS != other.INNER_BITS || LEAF_BITS != other.LEAF_BITS ||
+        resolution != other.resolution || Log2N != other.Log2N || 
+        INNER_MASK != other.INNER_MASK || LEAF_MASK != other.LEAF_MASK)
+    {
+         throw std::runtime_error("VoxelGrid assignment error: Incompatible grid parameters (resolution, bits, etc.). Assignment aborted.");
+
+    }
+
+    root_map.clear();
+    for (const auto& [key, source_inner_grid] : other.root_map) {
+        InnerGrid copied_inner_grid(source_inner_grid); 
+        for (auto inner_it = copied_inner_grid.mask().beginOn(); inner_it; ++inner_it) {
+            const uint32_t inner_index = *inner_it;
+            auto& leaf_ptr_ref = copied_inner_grid.cell(inner_index);
+
+            if (leaf_ptr_ref) {
+                leaf_ptr_ref = std::make_shared<LeafGrid>(*leaf_ptr_ref);
+            }
+             copied_inner_grid.mask().setOn(inner_index);
+        }
+        root_map.insert({ key, std::move(copied_inner_grid) });
+    }
+
+    return *this;
+}
+
+template <typename DataT>
+VoxelGrid<DataT>::VoxelGrid(VoxelGrid&& other) noexcept
+    : INNER_BITS(other.INNER_BITS),       
+      LEAF_BITS(other.LEAF_BITS),
+      Log2N(other.Log2N),
+      resolution(other.resolution),
+      inv_resolution(other.inv_resolution),
+      INNER_MASK(other.INNER_MASK),
+      LEAF_MASK(other.LEAF_MASK),
+      root_map(std::move(other.root_map)) 
+{
+    // 'other' is left in a valid (but likely empty) state.
+    // Its root_map is now empty.
+}
+
+template <typename DataT>
+VoxelGrid<DataT>& VoxelGrid<DataT>::operator=(VoxelGrid&& other) noexcept {
+    if (this == &other) {
+        return *this;
+    }
+
+     if (INNER_BITS != other.INNER_BITS || LEAF_BITS != other.LEAF_BITS ||
+        resolution != other.resolution || Log2N != other.Log2N ||
+        INNER_MASK != other.INNER_MASK || LEAF_MASK != other.LEAF_MASK)
+    {
+         // Option 1: Throw (consistent with copy assignment)
+         throw std::runtime_error("VoxelGrid move assignment error: Incompatible grid parameters. Move aborted.");
+
+    }
+
+    root_map.clear(); 
+    root_map = std::move(other.root_map);
+
+    return *this;
 }
 
 //----------------------------------------------------------
